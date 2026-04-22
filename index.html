@@ -107,7 +107,6 @@
       }
       .card-from { font-size: 13px; }
       
-      /* ★ 修正：スマホでも横並び（2カラム）にする ★ */
       .select-group { 
         flex-direction: row; 
         gap: 8px; 
@@ -130,7 +129,7 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
-    // ★ここにリクエスト用GoogleフォームのURLを入れてください★
+    // ここにリクエスト用GoogleフォームのURLを入れる
     const FORM_URL = "https://forms.google.com/YOUR_FORM_LINK";
 
     const INK   = '#2a1f15';
@@ -208,7 +207,6 @@
           style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,8,4,0.88)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div onClick={(e)=>e.stopPropagation()} style={{ position: 'relative', width: '100%', maxWidth: 960 }}>
             
-            {/* ★ 修正：曲名と歌手名、閉じるボタンのヘッダー部分 ★ */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px', width: '100%' }}>
               <div className="yusei" style={{ flex: 1, color: '#fff', paddingRight: '12px', minWidth: 0 }}>
                 {currentSong && (
