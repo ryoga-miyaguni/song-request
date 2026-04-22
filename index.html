@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>那覇キャンパスプレイリスト</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=Yusei+Magic&family=DotGothic16&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: "Kosugi Maru", -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #2a1f15;
+      background:
+        repeating-radial-gradient(circle at 30% 40%, rgba(139,90,43,0.15) 0px, transparent 2px),
+        repeating-radial-gradient(circle at 70% 60%, rgba(139,90,43,0.1) 0px, transparent 3px),
+        linear-gradient(135deg, #d4a574 0%, #c49060 100%);
+      background-attachment: fixed;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    @keyframes pulse-on-air { 0%,100%{opacity:1;} 50%{opacity:0.35;} }
+    @keyframes spin-loader { to { transform: rotate(360deg); } }
+    @keyframes pop-in { from { opacity:0; transform: translateY(8px) scale(.96);} to { opacity:1; transform: translateY(0) scale(1);} }
+    button { font-family: inherit; }
+    .yusei { font-family: "Yusei Magic", "Kosugi Maru", sans-serif; }
+    .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .polaroid-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 32px 24px;
+      padding: 16px 8px;
+    }
+
+    .card-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+    .card-artist { font-size: 13px; margin-bottom: 12px; color: rgba(42,31,21,0.6); }
+    .card-reason {
+      font-size: 14px;
+      line-height: 24px;
+      min-height: 72px;
+      padding: 12px 14px;
+      background-image: repeating-linear-gradient(transparent, transparent 23px, rgba(42,31,21,0.08) 23px, rgba(42,31,21,0.08) 24px);
+    }
+    .card-from { font-size: 14px; font-weight: 700; }
+
+    .controls-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin: 0 auto 24px;
+      padding: 0 10px;
+      max-width: 900px;
+    }
+    
+    .select-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    .search-input, .sort-select {
+      padding: 12px 18px;
+      border-radius: 30px;
+      border: 2px solid rgba(139,90,43,0.2);
+      background: #fdfbf3;
+      color: #2a1f15;
+      font-family: "Kosugi Maru", sans-serif;
+      font-size: 15px;
+      outline: none;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+      transition: all 0.2s;
+    }
+    .search-input:focus, .sort-select:focus {
+      border-color: #ff6b9d;
+      box-shadow: 0 0 0 3px rgba(255,107,157,0.2);
+    }
+    .sort-select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%232a1f15%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+      background-repeat: no-repeat;
+      background-position: right 16px top 50%;
+      background-size: 10px auto;
+      padding-right: 36px;
+    }
+
+    @media (min-width: 768px) {
+      .controls-container { flex-direction: row; justify-content: space-between; }
+      .search-input { flex: 1; }
+      .sort-select { min-width: 150px; }
+    }
+
+    /* スマホ向け（画面幅600px以下）の調整 */
+    @media (max-width: 600px) {
+      .polaroid-grid { grid-template-columns: repeat(2, 1fr); gap: 20px 12px; }
+      .card-title { font-size: 15px; }
+      .card-artist { font-size: 12px; }
+      .card-reason {
+        font-size: 13px; line-height: 1.5; min-height: 68px; padding: 12px;
+        background-image: repeating-linear-gradient(transparent, transparent 19px, rgba(42,31,21,0.08) 19px, rgba(42,31,21,0.08) 20px);
+      }
+      .card-from { font-size: 13px; }
+      
+      /* ★ 修正：スマホでも横並び（2カラム）にする ★ */
+      .select-group { 
+        flex-direction: row; 
+        gap: 8px; 
+        width: 100%;
+      }
+      .sort-select { 
+        flex: 1; /* 2つの要素を均等な幅にする */
+        padding: 10px 12px; /* スマホ用に余白を少し小さく */
+        font-size: 13px; /* 文字サイズを調整して見切れを防ぐ */
+        padding-right: 24px;
+        background-position: right 8px top 50%;
+        background-size: 8px auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef, useCallback } = React;
+
+    // ★ここにリクエスト用GoogleフォームのURLを入れてください★
+    const FORM_URL = "https://forms.google.com/YOUR_FORM_LINK";
+
+    const INK   = '#2a1f15';
+    const PAPER = '#fdfbf3';
+    const PINK  = '#ff6b9d';
+    const TAPE_COLORS = ['rgba(255,217,61,0.78)', 'rgba(255,107,157,0.72)', 'rgba(107,207,127,0.72)', 'rgba(77,171,247,0.72)', 'rgba(183,148,246,0.72)'];
+    const REASON_BGS = ['#fff9c4', '#ffe5ec', '#e3f9e8', '#e3f2ff', '#ffe8d1', '#f0e7ff'];
+    const ROTATIONS = [-3.2, 2.8, -1.8, 3.5, -2.4, 2.1, -2.9, 3.1];
+    const TAPE_PATTERN = 'repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,255,255,0.3) 3px, rgba(255,255,255,0.3) 6px)';
+
+    // ----- YouTube モーダル -----
+    function VideoModal({ videoId, onClose, onEnded, playMode, currentSong }) {
+      const playerRef = useRef(null);
+      const containerRef = useRef(null);
+
+      useEffect(() => {
+        if (!videoId) return;
+        const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+        document.addEventListener('keydown', onKey);
+        document.body.style.overflow = 'hidden';
+        return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
+      }, [videoId, onClose]);
+
+      useEffect(() => {
+        if (!videoId) return;
+        let isMounted = true;
+
+        const createPlayer = () => {
+          if (!isMounted) return;
+          if (playerRef.current) { try { playerRef.current.destroy(); } catch(e){} }
+          if (containerRef.current) {
+            containerRef.current.innerHTML = '<div id="yt-player" style="position:absolute; top:0; left:0; width:100%; height:100%;"></div>';
+          }
+          playerRef.current = new window.YT.Player('yt-player', {
+            videoId: videoId,
+            playerVars: { autoplay: 1, playsinline: 1, rel: 0 },
+            events: {
+              onStateChange: (event) => {
+                if (event.data === 0) { if (onEnded) onEnded(); }
+              }
+            }
+          });
+        };
+
+        if (!window.YT || !window.YT.Player) {
+          if (!document.getElementById('youtube-iframe-api')) {
+            const tag = document.createElement('script');
+            tag.id = 'youtube-iframe-api';
+            tag.src = "https://www.youtube.com/iframe_api";
+            const firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+            window.onYouTubeIframeAPIReady = () => createPlayer();
+          } else {
+            const prev = window.onYouTubeIframeAPIReady;
+            window.onYouTubeIframeAPIReady = () => { if (prev) prev(); createPlayer(); };
+          }
+        } else {
+          createPlayer();
+        }
+
+        return () => {
+          isMounted = false;
+          if (playerRef.current) { try { playerRef.current.destroy(); } catch(e){} playerRef.current = null; }
+        };
+      }, [videoId, onEnded]);
+
+      if (!videoId) return null;
+
+      let assistText = "動画が終わると自動で閉じます 🔂";
+      if (playMode === 'continuous') assistText = "動画が終わると次の曲が自動再生されます ⏭️";
+      if (playMode === 'shuffle') assistText = "動画が終わるとシャッフル再生されます 🔀";
+
+      return (
+        <div onClick={onClose}
+          style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,8,4,0.88)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div onClick={(e)=>e.stopPropagation()} style={{ position: 'relative', width: '100%', maxWidth: 960 }}>
+            
+            {/* ★ 修正：曲名と歌手名、閉じるボタンのヘッダー部分 ★ */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px', width: '100%' }}>
+              <div className="yusei" style={{ flex: 1, color: '#fff', paddingRight: '12px', minWidth: 0 }}>
+                {currentSong && (
+                  <>
+                    <div className="truncate" style={{ fontSize: 'clamp(16px, 4.5vw, 22px)', fontWeight: 'bold', marginBottom: '4px', lineHeight: 1.2 }}>
+                      ♪ {currentSong.title}
+                    </div>
+                    <div className="truncate" style={{ fontSize: 'clamp(12px, 3.5vw, 14px)', color: 'rgba(255,255,255,0.8)' }}>
+                      {currentSong.artist}
+                    </div>
+                  </>
+                )}
+              </div>
+              <button onClick={onClose} style={{ flexShrink: 0, background: 'transparent', border: 'none', color: '#fff', fontSize: 32, fontWeight: 300, cursor: 'pointer', lineHeight: 1, padding: 0 }}>×</button>
+            </div>
+
+            <div style={{ position: 'relative', paddingBottom: '56.25%', borderRadius: 8, overflow: 'hidden', background: '#000', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
+              <div ref={containerRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}></div>
+            </div>
+            <div className="yusei" style={{ position: 'absolute', bottom: -30, right: 0, color: 'rgba(255,255,255,0.8)', fontSize: 13, background: 'rgba(0,0,0,0.5)', padding: '2px 10px', borderRadius: '12px' }}>
+              {assistText}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ----- ヘッダー -----
+    function Header() {
+      return (
+        <div style={{ position: 'relative', marginBottom: 32 }}>
+          <div style={{ background: PAPER, padding: '24px 22px 22px', boxShadow: '0 6px 18px rgba(0,0,0,0.25), 2px 2px 0 rgba(0,0,0,0.05)', position: 'relative', transform: 'rotate(-1deg)', maxWidth: 560, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+            <div style={{ position:'absolute', top:-11, left:24, width:78, height:24, background:'rgba(255,107,157,0.75)', backgroundImage:TAPE_PATTERN, transform:'rotate(-4deg)', boxShadow:'0 1px 3px rgba(0,0,0,0.15)' }} />
+            <div style={{ position:'absolute', top:-11, right:24, width:78, height:24, background:'rgba(77,171,247,0.75)',  backgroundImage:TAPE_PATTERN, transform:'rotate(4deg)',  boxShadow:'0 1px 3px rgba(0,0,0,0.15)' }} />
+            <div style={{ alignSelf: 'flex-start', display:'inline-flex', alignItems:'center', gap:6, background:INK, color:PAPER, padding:'5px 11px', borderRadius:2, marginBottom:12, transform:'rotate(-2deg)', whiteSpace:'nowrap' }}>
+              <span style={{ width:7, height:7, borderRadius:4, background:'#ff4757', flexShrink:0, animation:'pulse-on-air 1.6s ease-in-out infinite' }} />
+              <span style={{ fontSize:10, fontWeight:800, letterSpacing:2, whiteSpace:'nowrap' }}>ON AIR</span>
+            </div>
+            <h1 className="yusei" style={{ fontSize:'clamp(28px, 6vw, 44px)', lineHeight:1.05, margin:0, color:INK }}>
+              那覇キャンパス<br className="block md:hidden" />プレイリスト
+            </h1>
+            <div className="yusei" style={{ fontSize:14, fontWeight:700, marginTop:10, color:'rgba(42,31,21,0.7)' }}>
+              みんなの「今これ聴いて!!」を集めたよ！
+            </div>
+            <a href={FORM_URL} target="_blank" rel="noopener noreferrer" className="yusei"
+              style={{ display:'inline-flex', alignItems:'center', gap:8, marginTop:16, background:PINK, color:'#fff', textDecoration:'none', padding:'11px 20px', borderRadius:4, fontSize:14, fontWeight:700, boxShadow:'3px 3px 0 rgba(0,0,0,0.22)', transform:'rotate(-1deg)' }}>
+              <span style={{ fontSize:16 }}>📮</span> リクエスト投函する
+            </a>
+          </div>
+        </div>
+      );
+    }
+
+    // ----- ポラロイドカード -----
+    function Polaroid({ req, index, onClick }) {
+      const [hover, setHover] = useState(false);
+      const rot = ROTATIONS[index % ROTATIONS.length];
+      const tape = TAPE_COLORS[index % TAPE_COLORS.length];
+      const reasonBg = REASON_BGS[index % REASON_BGS.length];
+
+      return (
+        <div onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+          style={{ position:'relative', transform: hover ? `rotate(${rot * 0.3}deg) translateY(-4px)` : `rotate(${rot}deg)`, transition:'transform .35s cubic-bezier(.2,.8,.3,1.2)', animation:'pop-in .4s ease-out both', animationDelay: (index * 0.04) + 's' }}>
+          <div style={{ position:'absolute', top:-10, left:'50%', transform:'translateX(-50%) rotate(-3deg)', width:64, height:20, background:tape, backgroundImage:TAPE_PATTERN, zIndex:2, boxShadow:'0 1px 3px rgba(0,0,0,0.15)' }} />
+          <div style={{ background:PAPER, padding:'10px 10px 14px', boxShadow:'0 6px 16px rgba(0,0,0,0.22), 2px 2px 0 rgba(0,0,0,0.06)' }}>
+            <div onClick={onClick} style={{ width:'100%', aspectRatio:'1 / 1', background:'#000', cursor:'pointer', position:'relative', overflow:'hidden', marginBottom:10 }}>
+              <img src={`https://img.youtube.com/vi/${req.videoId}/hqdefault.jpg`} alt={req.title} style={{ width:'100%', height:'100%', objectFit:'cover', filter:'saturate(0.92) contrast(1.05)', display:'block' }} />
+              <div style={{ position:'absolute', inset:0, background:'linear-gradient(160deg, rgba(255,220,150,0.15) 0%, transparent 50%, rgba(100,60,20,0.22) 100%)', pointerEvents:'none' }} />
+              <div style={{ position:'absolute', inset:0, background: hover ? 'rgba(0,0,0,0.4)' : 'transparent', display:'flex', alignItems:'center', justifyContent:'center', transition:'background .2s' }}>
+                <div style={{ width:42, height:42, borderRadius:21, background:'#fff', display:'flex', alignItems:'center', justifyContent:'center', opacity: hover ? 1 : 0.85, transform: hover ? 'scale(1.05)' : 'scale(0.85)', transition:'transform .2s, opacity .2s', boxShadow:'0 2px 8px rgba(0,0,0,0.3)' }}>
+                  <svg width="14" height="14" viewBox="0 0 20 20" fill={INK}><path d="M5 3l12 7-12 7z"/></svg>
+                </div>
+              </div>
+              <div style={{ position:'absolute', bottom:6, right:6, fontFamily:'"DotGothic16", monospace', fontSize:9, color:'#ff8800', background:'rgba(0,0,0,0.35)', padding:'1px 5px', letterSpacing:0.5 }}>
+                {(req.timestamp || '').split(' ')[0].replace(/\//g,'.')}
+              </div>
+            </div>
+            <div className="yusei truncate card-title" style={{ color:INK }} title={req.title}>♪ {req.title}</div>
+            <div className="yusei truncate card-artist">{req.artist}</div>
+            <div className="yusei card-reason" style={{ backgroundColor: reasonBg, color: INK }}>{req.reason}</div>
+            <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginTop:10, paddingTop:6, borderTop:'1px dashed rgba(42,31,21,0.22)' }}>
+              <div className="yusei card-from" style={{ color:INK, wordBreak: 'break-word' }}>From. {req.radioName}</div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ----- メインアプリ -----
+    function App() {
+      const [data, setData] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [selectedVideoId, setSelectedVideoId] = useState(null);
+      const [searchQuery, setSearchQuery] = useState('');
+      const [sortOrder, setSortOrder] = useState('newest');
+      const [playMode, setPlayMode] = useState('single');
+
+      const displayDataRef = useRef([]);
+      const playModeRef = useRef(playMode);
+      const unplayedRef = useRef([]); 
+
+      useEffect(() => {
+        playModeRef.current = playMode;
+        if (playMode === 'shuffle') {
+          unplayedRef.current = [];
+        }
+      }, [playMode]);
+
+      useEffect(() => {
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+          google.script.run
+            .withSuccessHandler((result) => {
+              const processedData = (result || []).map((item, index) => ({ ...item, originalIndex: index }));
+              setData(processedData);
+              setLoading(false);
+            })
+            .withFailureHandler((err) => {
+              console.error("データ取得エラー:", err);
+              setLoading(false);
+            })
+            .getRequestData();
+        }
+      }, []);
+
+      const displayData = useMemo(() => {
+        let result = [...data];
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase();
+          result = result.filter(item => 
+            (item.title && item.title.toLowerCase().includes(query)) ||
+            (item.artist && item.artist.toLowerCase().includes(query)) ||
+            (item.radioName && item.radioName.toLowerCase().includes(query))
+          );
+        }
+        result.sort((a, b) => sortOrder === 'newest' ? b.originalIndex - a.originalIndex : a.originalIndex - b.originalIndex);
+        return result;
+      }, [data, searchQuery, sortOrder]);
+
+      useEffect(() => {
+        displayDataRef.current = displayData;
+      }, [displayData]);
+
+      const handleVideoEnded = useCallback(() => {
+        setSelectedVideoId(prevId => {
+          if (!prevId) return null;
+          if (playModeRef.current === 'single') return null;
+          
+          const currentList = displayDataRef.current;
+          if (currentList.length === 0) return null;
+
+          if (playModeRef.current === 'shuffle') {
+            if (currentList.length <= 1) return null;
+            if (unplayedRef.current.length === 0) {
+              const others = currentList
+                .filter(item => item.videoId !== prevId)
+                .map(item => item.videoId);
+              for (let i = others.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [others[i], others[j]] = [others[j], others[i]];
+              }
+              unplayedRef.current = others;
+            }
+            if (unplayedRef.current.length > 0) return unplayedRef.current.pop();
+            return null;
+          }
+
+          const currentIndex = currentList.findIndex(item => item.videoId === prevId);
+          if (currentIndex !== -1 && currentIndex < currentList.length - 1) {
+            return currentList[currentIndex + 1].videoId;
+          }
+          return null; 
+        });
+      }, []);
+
+      // 選択中の曲のデータを取得
+      const currentSong = useMemo(() => {
+        if (!selectedVideoId) return null;
+        return data.find(item => item.videoId === selectedVideoId) || null;
+      }, [selectedVideoId, data]);
+
+      return (
+        <div style={{ minHeight:'100vh', padding:'20px 14px 60px', position:'relative' }}>
+          <div style={{ position:'fixed', inset:8, border:'12px solid #7a4a22', borderRadius:4, pointerEvents:'none', zIndex:0, boxShadow:'inset 0 0 0 2px rgba(0,0,0,0.2), inset 0 2px 8px rgba(0,0,0,0.15)' }} />
+
+          <div style={{ position:'relative', zIndex:1, maxWidth:1200, margin:'0 auto', padding:'8px 4px' }}>
+            <Header />
+
+            <div className="controls-container yusei">
+              <input type="text" className="search-input" placeholder="🔍 曲名、アーティスト、ラジオネームで検索..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+              
+              <div className="select-group">
+                <select className="sort-select" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
+                  <option value="newest">✨ 新着順</option>
+                  <option value="oldest">🕰️ 投稿順</option>
+                </select>
+                
+                <select 
+                  className="sort-select" 
+                  value={playMode} 
+                  onChange={(e) => setPlayMode(e.target.value)}
+                  style={{ backgroundColor: playMode === 'single' ? '#fdfbf3' : '#fff0f5' }}
+                >
+                  <option value="single">🔂 1曲再生</option>
+                  <option value="continuous">🔁 連続再生</option>
+                  <option value="shuffle">🔀 シャッフル</option>
+                </select>
+              </div>
+            </div>
+
+            {loading ? (
+              <div style={{ display:'flex', justifyContent:'center', alignItems:'center', padding:'80px 0' }}>
+                <div style={{ width:48, height:48, border:'4px solid rgba(255,255,255,0.4)', borderTopColor:PAPER, borderRadius:'50%', animation:'spin-loader 0.9s linear infinite' }} />
+              </div>
+            ) : displayData.length === 0 ? (
+              <div className="yusei" style={{ textAlign:'center', padding:'60px 20px', color:PAPER, fontSize:16, background:'rgba(0,0,0,0.4)', borderRadius:'8px', maxWidth:'400px', margin:'0 auto' }}>
+                {data.length === 0 ? <>まだリクエストがありません。<br/>最初の1曲を投函しよう♪</> : <>「{searchQuery}」に一致する曲が見つかりませんでした。</>}
+              </div>
+            ) : (
+              <div className="polaroid-grid">
+                {displayData.map((r, i) => (
+                  <Polaroid 
+                    key={`${r.originalIndex}-${i}`} 
+                    req={r} 
+                    index={i} 
+                    onClick={() => {
+                      unplayedRef.current = []; 
+                      setSelectedVideoId(r.videoId);
+                    }} 
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          <VideoModal 
+            videoId={selectedVideoId} 
+            onClose={() => setSelectedVideoId(null)} 
+            onEnded={handleVideoEnded}
+            playMode={playMode}
+            currentSong={currentSong}
+          />
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

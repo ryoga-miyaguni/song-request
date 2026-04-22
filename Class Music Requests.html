@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Class Music Requests — Design Options</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  html,body{margin:0;padding:0;height:100%;}
+  body{font-family:"M PLUS Rounded 1c",-apple-system,sans-serif;}
+  #root{height:100vh;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="data.jsx"></script>
+<script type="text/babel" src="shared.jsx"></script>
+<script type="text/babel" src="variant-record.jsx"></script>
+<script type="text/babel" src="variant-cards.jsx"></script>
+<script type="text/babel" src="variant-polaroid.jsx"></script>
+
+<script type="text/babel" data-presets="react">
+function App() {
+  const { useState } = React;
+  const [video, setVideo] = useState(null);
+  const open = (id) => setVideo(id);
+  const close = () => setVideo(null);
+
+  // iPhone 14 Pro-ish portrait artboards
+  const W = 390, H = 844;
+
+  return (
+    <>
+      <DesignCanvas>
+        <DCSection
+          id="variants"
+          title="Class Music Requests"
+          subtitle="3案 · スマホファースト (390×844) · 画像タップで動画再生"
+        >
+          <DCArtboard id="record" label="案A · ビニールレコード風" width={W} height={H}>
+            <div style={{width:W, height:H, overflowY:'auto'}}>
+              <VariantRecord onOpenVideo={open} />
+            </div>
+          </DCArtboard>
+          <DCArtboard id="cards" label="案B · 青春ポップカード" width={W} height={H}>
+            <div style={{width:W, height:H, overflowY:'auto'}}>
+              <VariantCards onOpenVideo={open} />
+            </div>
+          </DCArtboard>
+          <DCArtboard id="polaroid" label="案C · ポラロイド掲示板" width={W} height={H}>
+            <div style={{width:W, height:H, overflowY:'auto'}}>
+              <VariantPolaroid onOpenVideo={open} />
+            </div>
+          </DCArtboard>
+        </DCSection>
+      </DesignCanvas>
+      <VideoModal videoId={video} onClose={close} />
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
